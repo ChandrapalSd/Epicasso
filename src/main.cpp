@@ -1,5 +1,7 @@
 #include "raylib.h"
 #include <iostream>
+#include <vector>
+#include <format>
 
 #pragma region imgui
 #include "imgui.h"
@@ -14,7 +16,7 @@ int main(void)
 {
 
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-	InitWindow(800, 450, "raylib [core] example - basic window");
+	InitWindow(800, 450, "Epicasso - Simple paint application in C++");
 
 #pragma region imgui
 	rlImGuiSetup(true);
@@ -30,8 +32,8 @@ int main(void)
 
 	ImGuiIO &io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-	io.FontGlobalScale = 2;
+	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+	io.FontGlobalScale = 1;
 
 	ImGuiStyle &style = ImGui::GetStyle();
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -42,6 +44,10 @@ int main(void)
 	}
 
 #pragma endregion
+	std::vector<std::pair<Vector2, Vector2>> lines;
+
+	Vector2 startPoint = { 0, 0 };
+	Vector2 endPoint = { 0, 0 };
 
 
 
@@ -50,28 +56,34 @@ int main(void)
 		BeginDrawing();
 		ClearBackground(RAYWHITE);
 
-
-	#pragma region imgui
 		rlImGuiBegin();
-
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, {});
-		ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, {});
-		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-		ImGui::PopStyleColor(2);
-	#pragma endregion
 
 
 		ImGui::Begin("Test");
-
-		ImGui::Text("Hello");
-		ImGui::Button("Button");
-		ImGui::Button("Button2");
-
+		for (auto& line : lines) {
+			std::string e = std::format("({}, {}) -> ({}, {})", line.first.x, line.first.y, line.second.x, line.second.y);
+			ImGui::Text(e.c_str());
+		}
 		ImGui::End();
 
 
-		DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
+		if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !io.WantCaptureMouse) {
+			startPoint = GetMousePosition();
+		}
 
+		if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && !io.WantCaptureMouse) {
+			endPoint = GetMousePosition();
+		}
+
+		if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON) && !io.WantCaptureMouse) {
+			lines.push_back({ startPoint, endPoint });
+		}
+
+		DrawLineV(startPoint, endPoint, BLACK);
+
+		for (auto& line : lines) {
+			DrawLineV(line.first, line.second, RED);
+		}
 
 	#pragma region imgui
 		rlImGuiEnd();

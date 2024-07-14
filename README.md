@@ -1,7 +1,5 @@
 # Epicasso - Simple paint application in C++ 
 
----
-
 ## What is it?
 
 Simple paint application in C++ 
