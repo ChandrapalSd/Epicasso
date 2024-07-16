@@ -9,8 +9,13 @@
 #include "imguiThemes.h"
 #pragma endregion
 
+bool areCollinear(Vector2 p1, Vector2 p2, Vector2 p3) {
+	return (p2.y - p1.y) * (p2.x - p1.x) == (p3.y - p1.y) * (p3.x - p1.x);
+}
 
-
+bool operator== (Vector2 p1, Vector2 p2) {
+	return (p1.x == p2.x) && (p1.y == p2.y);
+}
 
 int main(void)
 {
@@ -48,11 +53,14 @@ int main(void)
 
 	Vector2 startPoint = { 0, 0 };
 	Vector2 endPoint = { 0, 0 };
-
-
+	bool hasEndPoint = false;
+	bool drawing = false;
+	
 
 	while (!WindowShouldClose())
 	{
+		const Vector2 mousePos = GetMousePosition();
+
 		BeginDrawing();
 		ClearBackground(RAYWHITE);
 
@@ -60,23 +68,54 @@ int main(void)
 
 
 		ImGui::Begin("Test");
+		int count = 0;
 		for (auto& line : lines) {
-			std::string e = std::format("({}, {}) -> ({}, {})", line.first.x, line.first.y, line.second.x, line.second.y);
+			std::string e = std::format("{}. ({}, {}) -> ({}, {})", ++count, line.first.x, line.first.y, line.second.x, line.second.y);
 			ImGui::Text(e.c_str());
 		}
 		ImGui::End();
 
 
+		if (IsKeyPressed(KEY_C)) {
+			startPoint = {};
+			endPoint = {};
+			hasEndPoint = false;
+			drawing = false;
+			lines.clear();
+		}
+
+		Vector2 newEndPoint = mousePos;
+
 		if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !io.WantCaptureMouse) {
-			startPoint = GetMousePosition();
+			startPoint = mousePos;
+			endPoint = startPoint;
+			drawing = true;
+			hasEndPoint = false;
 		}
-
-		if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && !io.WantCaptureMouse) {
-			endPoint = GetMousePosition();
+		else if (drawing && startPoint != newEndPoint && IsMouseButtonDown(MOUSE_LEFT_BUTTON) && !io.WantCaptureMouse) {
+			if (hasEndPoint && !areCollinear(startPoint, endPoint, newEndPoint)) {
+				lines.push_back({ startPoint, endPoint });
+				lines.push_back({ endPoint, newEndPoint });
+				startPoint = newEndPoint;
+				endPoint = newEndPoint;
+				hasEndPoint = false;
+			}
+			else {
+				endPoint = newEndPoint;
+				hasEndPoint = true;
+			}
 		}
-
-		if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON) && !io.WantCaptureMouse) {
-			lines.push_back({ startPoint, endPoint });
+		else if (drawing && IsMouseButtonReleased(MOUSE_LEFT_BUTTON) && !io.WantCaptureMouse) {
+			drawing = false;
+			if (hasEndPoint) {
+				if (areCollinear(startPoint, endPoint, newEndPoint)) {
+					lines.push_back({ startPoint, newEndPoint });
+				}
+				else {
+					lines.push_back({ startPoint, endPoint });
+					lines.push_back({ endPoint, newEndPoint });
+				}
+			}
 		}
 
 		DrawLineV(startPoint, endPoint, BLACK);
