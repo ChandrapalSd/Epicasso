@@ -93,6 +93,10 @@ int main(void)
 			}
 		}
 
+		int strokeWidth = eOptions.strokeWidth;
+		ImGui::SliderInt("Stroke Width", &strokeWidth, 1, 100);
+		eOptions.strokeWidth = strokeWidth;
+
 		ImGui::ColorPicker4("Stroke Color", (float*) & eOptions.strokeColor);
 
 		ImGui::End();
@@ -140,10 +144,10 @@ int main(void)
 			}
 		}
 
-		DrawLineV(startPoint, endPoint, toRLColor(eOptions.strokeColor));
+		DrawLineEx(startPoint, endPoint, eOptions.strokeWidth, toRLColor(eOptions.strokeColor));
 
 		for (auto& line : drawActions) {
-			DrawLineV(line.startPoint, line.endPoint, line.color);
+			DrawLineEx(line.startPoint, line.endPoint, line.strokeWidth, line.color);
 		}
 
 	#pragma region imgui
