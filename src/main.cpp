@@ -3,6 +3,9 @@
 #include <vector>
 #include <format>
 
+#include "action.h"
+#include "editor.h"
+
 #pragma region imgui
 #include "imgui.h"
 #include "rlImGui.h"
@@ -15,6 +18,15 @@ bool areCollinear(Vector2 p1, Vector2 p2, Vector2 p3) {
 
 bool operator== (Vector2 p1, Vector2 p2) {
 	return (p1.x == p2.x) && (p1.y == p2.y);
+}
+
+Color toRLColor(ImColor& c) {
+	return Color{
+		static_cast<unsigned char>(c.Value.x * 255),
+		static_cast<unsigned char>(c.Value.y * 255),
+		static_cast<unsigned char>(c.Value.z * 255),
+		static_cast<unsigned char>(c.Value.w * 255)
+	};
 }
 
 int main(void)
@@ -49,13 +61,17 @@ int main(void)
 	}
 
 #pragma endregion
-	std::vector<std::pair<Vector2, Vector2>> lines;
+	std::vector<DrawAction> drawActions;
 
 	Vector2 startPoint = { 0, 0 };
 	Vector2 endPoint = { 0, 0 };
 	bool hasEndPoint = false;
 	bool drawing = false;
-	
+	EditorOption eOptions{
+	.strokeWidth = 1,
+	.strokeColor = IM_COL32(255,0,0,255) // REDs
+	};
+
 
 	while (!WindowShouldClose())
 	{
@@ -66,22 +82,28 @@ int main(void)
 
 		rlImGuiBegin();
 
-
+#pragma region ImGuiDraw
 		ImGui::Begin("Test");
-		int count = 0;
-		for (auto& line : lines) {
-			std::string e = std::format("{}. ({}, {}) -> ({}, {})", ++count, line.first.x, line.first.y, line.second.x, line.second.y);
-			ImGui::Text(e.c_str());
-		}
-		ImGui::End();
 
+		if (ImGui::CollapsingHeader("LineDebugInfo")) {
+			int count = 0;
+			for (auto& line : drawActions) {
+				std::string e = std::format("{}. ({}, {}) -> ({}, {})", ++count, line.startPoint.x, line.startPoint.y, line.endPoint.x, line.endPoint.y);
+				ImGui::Text(e.c_str());
+			}
+		}
+
+		ImGui::ColorPicker4("Stroke Color", (float*) & eOptions.strokeColor);
+
+		ImGui::End();
+#pragma endregion
 
 		if (IsKeyPressed(KEY_C)) {
 			startPoint = {};
 			endPoint = {};
 			hasEndPoint = false;
 			drawing = false;
-			lines.clear();
+			drawActions.clear();
 		}
 
 		Vector2 newEndPoint = mousePos;
@@ -94,8 +116,8 @@ int main(void)
 		}
 		else if (drawing && startPoint != newEndPoint && IsMouseButtonDown(MOUSE_LEFT_BUTTON) && !io.WantCaptureMouse) {
 			if (hasEndPoint && !areCollinear(startPoint, endPoint, newEndPoint)) {
-				lines.push_back({ startPoint, endPoint });
-				lines.push_back({ endPoint, newEndPoint });
+				drawActions.push_back({ startPoint, endPoint, eOptions.strokeWidth, toRLColor(eOptions.strokeColor) });
+				drawActions.push_back({ endPoint, newEndPoint, eOptions.strokeWidth, toRLColor(eOptions.strokeColor) });
 				startPoint = newEndPoint;
 				endPoint = newEndPoint;
 				hasEndPoint = false;
@@ -109,19 +131,19 @@ int main(void)
 			drawing = false;
 			if (hasEndPoint) {
 				if (areCollinear(startPoint, endPoint, newEndPoint)) {
-					lines.push_back({ startPoint, newEndPoint });
+					drawActions.push_back({ startPoint, newEndPoint,1,Color() });
 				}
 				else {
-					lines.push_back({ startPoint, endPoint });
-					lines.push_back({ endPoint, newEndPoint });
+					drawActions.push_back({ startPoint, endPoint, eOptions.strokeWidth,  toRLColor(eOptions.strokeColor) });
+					drawActions.push_back({ endPoint, newEndPoint, eOptions.strokeWidth, toRLColor(eOptions.strokeColor) });
 				}
 			}
 		}
 
-		DrawLineV(startPoint, endPoint, BLACK);
+		DrawLineV(startPoint, endPoint, toRLColor(eOptions.strokeColor));
 
-		for (auto& line : lines) {
-			DrawLineV(line.first, line.second, RED);
+		for (auto& line : drawActions) {
+			DrawLineV(line.startPoint, line.endPoint, line.color);
 		}
 
 	#pragma region imgui
